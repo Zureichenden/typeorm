@@ -6,13 +6,9 @@ export const createUser = async (req:Request,res:Response ) => {
     const user = new User()
     user.firstname = firstname;
     user.lastname = lastname;
-
     await user.save()
     console.log(user);
-
-    // res.send("hola mundo usuario")
     console.log(req.body)
-
 }
 
 export const updateUser = async (req: Request, res: Response) => {
