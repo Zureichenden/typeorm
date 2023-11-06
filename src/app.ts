@@ -6,6 +6,7 @@ const app = express()
 
 app.use(morgan('dev'))
 app.use(cors())
+app.use(express.json())
 app.use(userRoutes)
 
 export default app
