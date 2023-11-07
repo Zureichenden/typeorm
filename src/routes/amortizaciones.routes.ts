@@ -6,6 +6,7 @@ import {
   updateAmortizacion,
   deleteAmortizacion,
   mostrarTablaAmortizacionByPrestamo,
+  mostrarTablaAmortizacionByNombreCliente
 } from '../controllers/amortizaciones.controller';
 
 const router = Router();
@@ -17,5 +18,6 @@ router.put('/amortizaciones/:id', updateAmortizacion);
 router.delete('/amortizaciones/:id', deleteAmortizacion);
 
 router.get('/amortizaciones/prestamo/:id', mostrarTablaAmortizacionByPrestamo);
+router.get('/amortizaciones/cliente/:nombreCliente', mostrarTablaAmortizacionByNombreCliente);
 
 export default router;

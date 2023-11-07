@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Amortizacion } from '../entities/Amortizaciones';
 import { Prestamo } from '../entities/Prestamo'; // Importa la entidad Prestamo
+import { ILike } from 'typeorm';
 
 // Crear una nueva amortización
 export const createAmortizacion = async (req: Request, res: Response) => {
@@ -71,7 +72,9 @@ export const deleteAmortizacion = async (req: Request, res: Response) => {
 // Obtener todas las amortizaciones
 export const getAmortizaciones = async (req: Request, res: Response) => {
   try {
-    const amortizaciones = await Amortizacion.find();
+    const amortizaciones = await Amortizacion.find({
+      relations: ['prestamo'], // Incluir la relación con el préstamo
+    });    
     return res.status(200).json(amortizaciones);
   } catch (error) {
     if (error instanceof Error) {
@@ -134,6 +137,32 @@ export const mostrarTablaAmortizacionByPrestamo = async (req: Request, res: Resp
       }
     } else {
       res.status(404).json({ message: 'No se encontraron registros de amortizaciones para el préstamo.' });
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      return res.status(500).json({ message: error.message });
+    }
+  }
+};
+
+export const mostrarTablaAmortizacionByNombreCliente = async (req: Request, res: Response) => {
+  try {
+    const { nombreCliente } = req.params;
+
+    // Realiza la consulta para obtener todas las amortizaciones de préstamos cuyo cliente tenga un nombre similar al proporcionado
+    const amortizaciones = await Amortizacion.createQueryBuilder('amortizacion')
+      .innerJoin('amortizacion.prestamo', 'prestamo')
+      .innerJoin('prestamo.cliente', 'cliente')
+      .where('cliente.nombre ILIKE :nombreCliente', { nombreCliente: `%${nombreCliente}%` }) // Búsqueda parcial o similar
+      .select(["amortizacion.id", "amortizacion.quincena", "amortizacion.fecha_pago", "amortizacion.monto_pago", "amortizacion.interes_pago", "amortizacion.abono", "amortizacion.capital_pendiente"])
+      .addSelect(['prestamo.id']) // Agregar el ID del préstamo a la consulta
+      .getMany();
+
+    if (amortizaciones.length > 0) {
+      // Envía la información de las amortizaciones encontradas en la respuesta
+      res.status(200).json(amortizaciones);
+    } else {
+      res.status(404).json({ message: 'No se encontraron registros de amortizaciones para el cliente proporcionado.' });
     }
   } catch (error) {
     if (error instanceof Error) {
