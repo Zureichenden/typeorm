@@ -50,9 +50,8 @@ export const createPrestamo2 = async (req: Request, res: Response) => {
     }
   };
 
-  export const createPrestamo = async (req: Request, res: Response) => {
+  export const createPrestamo23 = async (req: Request, res: Response) => {
     const { cliente_id, monto_id, fecha_inicio, interes } = req.body;
-  
     try {
       const cliente = await Cliente.findOneBy({ id: cliente_id });
       const monto = await CatalogoMontos.findOneBy({ id: monto_id });
@@ -66,27 +65,19 @@ export const createPrestamo2 = async (req: Request, res: Response) => {
       prestamo.monto = monto;
       prestamo.fecha_inicio = fecha_inicio;
       prestamo.interes = interes;
-  
       await prestamo.save();
   
       // Crea las amortizaciones
       const cantidadPlazos = monto.cantidad_plazos;
       const montoPorQuincenaSinInteres = monto.monto / cantidadPlazos;
       const tasaInteresQuincenal = interes / 100;
-  
       let capitalPendiente = monto.monto;
       const fechaActual = new Date(fecha_inicio);
-
       console.log("a ver cantidadPlazos");
-
       console.log(cantidadPlazos);
-
-      
-  
     for (let quincena = 1; quincena <= cantidadPlazos; quincena++) {
         const interesPago = capitalPendiente * tasaInteresQuincenal;
         const abono = montoPorQuincenaSinInteres + interesPago;
-
         console.log("Quincena:", quincena);
         console.log("Fecha actual:", fechaActual);
         console.log("Capital pendiente:", capitalPendiente);
@@ -118,6 +109,64 @@ export const createPrestamo2 = async (req: Request, res: Response) => {
       }
     }
   };
+
+  export const createPrestamo = async (req: Request, res: Response) => {
+    const { cliente_id, monto_id, fecha_inicio, interes } = req.body;
+    try {
+      const cliente = await Cliente.findOneBy({ id: cliente_id });
+      const monto = await CatalogoMontos.findOneBy({ id: monto_id });
+  
+      if (!cliente || !monto) {
+        return res.status(400).json({ message: 'Cliente o catálogo de montos no encontrado' });
+      }
+  
+      const prestamo = new Prestamo();
+      prestamo.cliente = cliente;
+      prestamo.monto = monto;
+      prestamo.fecha_inicio = fecha_inicio;
+      prestamo.interes = interes;
+      await prestamo.save();
+  
+      // Crea las amortizaciones
+      const cantidadPlazos = monto.cantidad_plazos;
+      const montoPorQuincenaSinInteres = monto.monto / cantidadPlazos;
+      const tasaInteresQuincenal = interes / 100;
+      let capitalPendiente = monto.monto;
+      const fechaActual = new Date(fecha_inicio);
+  
+      // Calcula el interés total a pagar
+      const interesTotal = capitalPendiente * tasaInteresQuincenal;
+  
+      // Calcula el abono constante
+      const abono = montoPorQuincenaSinInteres + interesTotal;
+      const interesPago = capitalPendiente * tasaInteresQuincenal;
+
+      for (let quincena = 1; quincena <= cantidadPlazos; quincena++) {
+  
+        const amortizacion = new Amortizacion();
+        amortizacion.prestamo = prestamo;
+        amortizacion.quincena = quincena;
+        amortizacion.fecha_pago = fechaActual;
+        amortizacion.monto_pago = montoPorQuincenaSinInteres;
+        amortizacion.interes_pago = interesPago;
+        amortizacion.abono = abono; // Utiliza el valor calculado de abono
+        amortizacion.capital_pendiente = capitalPendiente;
+
+        await amortizacion.save();
+  
+        capitalPendiente -= montoPorQuincenaSinInteres;
+        fechaActual.setDate(fechaActual.getDate() + 15); // Avanza 15 días (una quincena)
+      }
+  
+      return res.status(201).json(prestamo);
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(500).json({ message: error.message });
+      }
+    }
+  };
+  
+  
   
   
   

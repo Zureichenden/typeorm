@@ -96,3 +96,54 @@ export const getAmortizacion = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const mostrarTablaAmortizacionByPrestamo = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const prestamoId = parseInt(id, 10); // Convierte el ID a un número
+
+    if (isNaN(prestamoId)) {
+      return res.status(400).json({ message: 'El ID del préstamo no es un número válido.' });
+    }
+
+    // Realiza la consulta para obtener todas las amortizaciones de un préstamo específico
+    const amortizaciones = await Amortizacion.find({
+      where: {
+        prestamo: { id: prestamoId }, // Usamos el objeto prestamo en lugar de prestamo_id
+      },
+      select: ["id", "quincena", "fecha_pago", "monto_pago", "interes_pago", "abono", "capital_pendiente"],
+    });
+
+    if (amortizaciones.length > 0) {
+      // Realiza la consulta para obtener el préstamo específico
+      const prestamo = await Prestamo.findOne({
+        where: {
+            id: prestamoId,
+        },
+        relations: {
+            cliente: true,
+            monto:true
+        },
+    })  
+
+      if (prestamo) {
+        // Envía la información del préstamo y las amortizaciones en la misma respuesta
+        res.status(200).json({ prestamo, amortizaciones });
+      } else {
+        res.status(404).json({ message: 'No se encontraron registros del préstamo.' });
+      }
+    } else {
+      res.status(404).json({ message: 'No se encontraron registros de amortizaciones para el préstamo.' });
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      return res.status(500).json({ message: error.message });
+    }
+  }
+};
+
+
+
+
+
+
